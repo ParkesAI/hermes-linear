@@ -12,15 +12,15 @@ from gateway.config import Platform, PlatformConfig
 from gateway.session import SessionSource
 from tools.registry import registry as tool_registry
 
-from hermes_linear_agent import oauth as linear_oauth
-from hermes_linear_agent import tools as linear_agent_tools
-from hermes_linear_agent.adapter import (
+from hermes_linear import oauth as linear_oauth
+from hermes_linear import tools as linear_agent_tools
+from hermes_linear.adapter import (
     LinearAgentAdapter,
     register,
     validate_config,
 )
-from hermes_linear_agent.client import LinearGraphQLClient
-from hermes_linear_agent.oauth import (
+from hermes_linear.client import LinearGraphQLClient
+from hermes_linear.oauth import (
     LinearOAuthConfig,
     LinearOAuthTokenManager,
     build_auth_token_update_callback,
@@ -31,8 +31,8 @@ from hermes_linear_agent.oauth import (
     remove_env_keys,
     update_env_file,
 )
-from hermes_linear_agent.registry import set_active_adapter
-from hermes_linear_agent.webhook import verify_linear_signature
+from hermes_linear.registry import set_active_adapter
+from hermes_linear.webhook import verify_linear_signature
 
 
 class _PluginContext:
@@ -414,7 +414,7 @@ def test_default_webhook_path_matches_linear_app_url():
         client=_CaptureGraphQLClient(),
     )
 
-    assert adapter._webhook_path == "/hermes/linear-agent"
+    assert adapter._webhook_path == "/linear"
 
 
 def test_oauth_authorization_url_uses_app_actor_and_state():
@@ -589,7 +589,7 @@ def test_oauth_cli_reads_client_credentials_from_profile_env(tmp_path, monkeypat
     assert captured["client_id"] == "client-1"
     assert captured["client_secret"] == "secret-1"
     assert captured["env_path"] == env_path
-    assert captured["auth_path"] == env_path.parent / "plugin-state" / "linear-agent" / "oauth.json"
+    assert captured["auth_path"] == env_path.parent / "plugin-state" / "hermes-linear" / "oauth.json"
     assert captured["scope"] == "read,write,admin"
 
 
@@ -1020,7 +1020,7 @@ async def test_stop_interrupt_key_matches_real_dispatch_session_key():
     Drives a real prompted webhook through the REAL handle_message, capturing
     only _process_message_background (which receives the authoritative key).
     """
-    from hermes_linear_agent.webhook import extract_context
+    from hermes_linear.webhook import extract_context
 
     adapter = _make_adapter(client=_FakeLinearClient())
     captured = []
@@ -1590,29 +1590,30 @@ async def test_adapter_send_uses_response_activity():
 
 
 @pytest.mark.asyncio
-async def test_dispatch_error_maps_to_error_activity():
+async def test_failed_dispatch_is_retryable_without_exposing_exception():
     fake_client = _FakeLinearClient()
     adapter = _make_adapter(client=fake_client)
 
     async def explode(event):
-        raise RuntimeError("boom")
+        raise RuntimeError("private diagnostic detail")
 
     adapter.handle_message = explode
-    payload = _created_payload()
-    raw = _body(payload)
+    raw = _body(_created_payload())
+    headers = _headers(raw, "secret")
+    response, status = await adapter.handle_webhook(headers, raw)
+    assert status == 503
+    assert "private diagnostic detail" not in json.dumps(response)
+    assert not any(c[0] == "error" for c in fake_client.calls)
+    captured = []
 
-    response, status = await adapter.handle_webhook(_headers(raw, "secret"), raw)
+    async def capture(event):
+        captured.append(event)
 
+    adapter.handle_message = capture
+    response, status = await adapter.handle_webhook(headers, raw)
     assert status == 200
-    assert response["status"] == "error"
-    # The ack thought runs concurrently with dispatch (Linear's 5s webhook /
-    # 10s ack deadlines), so its ordering relative to the error activity is
-    # not guaranteed — assert both were sent rather than their order.
-    kinds = [c[0] for c in fake_client.calls]
-    assert sorted(kinds) == ["error", "thought"]
-    error_call = next(c for c in fake_client.calls if c[0] == "error")
-    assert error_call[1] == "session-1"
-    assert "boom" in error_call[2]
+    assert response["status"] == "accepted"
+    assert len(captured) == 1
 
 
 @pytest.mark.asyncio
@@ -1630,7 +1631,9 @@ async def test_duplicate_webhook_event_is_ignored():
     headers = _headers(raw, "secret", delivery_id="evt-dup")
 
     first_response, first_status = await adapter.handle_webhook(headers, raw)
-    second_response, second_status = await adapter.handle_webhook(headers, raw)
+    second_response, second_status = await adapter.handle_webhook(
+        {**headers, "Linear-Delivery-Id": "forged-new-id"}, raw
+    )
 
     assert first_status == 200
     assert first_response["status"] == "accepted"
@@ -1795,7 +1798,7 @@ async def test_send_chunks_oversized_responses():
 def test_guidance_list_renders_rule_bodies():
     """Linear sends guidance as [{body, origin}] — the prompt must carry the
     rule text, never a stringified dict."""
-    from hermes_linear_agent.webhook import build_created_prompt, extract_context
+    from hermes_linear.webhook import build_created_prompt, extract_context
 
     payload = _created_payload()
     payload["guidance"] = [
@@ -1971,7 +1974,7 @@ def test_register_routes_tools_through_plugin_context():
     """Tools re-register through ctx.register_tool so the plugin manager
     tracks them and the `linear_agent` toolset is discoverable in
     `hermes tools` / saved platform_toolsets selections."""
-    from hermes_linear_agent.tools import TOOL_NAMES
+    from hermes_linear.tools import TOOL_NAMES
 
     class Ctx:
         def __init__(self):
@@ -2063,7 +2066,7 @@ async def test_unsigned_webhook_accepted_with_explicit_opt_in(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_standalone_send_posts_comment_on_home_issue(monkeypatch):
-    from hermes_linear_agent import adapter as adapter_module
+    from hermes_linear import adapter as adapter_module
 
     class _FakeStandaloneClient:
         last = None
@@ -2096,7 +2099,7 @@ async def test_standalone_send_posts_comment_on_home_issue(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_standalone_send_rejects_missing_or_malformed_target():
-    from hermes_linear_agent.adapter import _standalone_send
+    from hermes_linear.adapter import _standalone_send
 
     config = PlatformConfig(enabled=True, extra={"access_token": "tok"})
 
@@ -2381,7 +2384,7 @@ async def test_client_gives_up_after_second_429():
 def test_env_enablement_seeds_all_documented_env_vars(monkeypatch):
     """Every LINEAR_AGENT_* env var the setup docs promise must land in the
     platform config seed (the guide's env-wiring test pattern)."""
-    from hermes_linear_agent.adapter import _env_enablement
+    from hermes_linear.adapter import _env_enablement
 
     expected = {
         "LINEAR_AGENT_ACCESS_TOKEN": ("access_token", "tok-1"),
@@ -2399,7 +2402,7 @@ def test_env_enablement_seeds_all_documented_env_vars(monkeypatch):
     for env_name, (_, value) in expected.items():
         monkeypatch.setenv(env_name, value)
     # Ensure the cached-token path doesn't shadow the env token.
-    monkeypatch.setattr("hermes_linear_agent.adapter._cached_access_token", lambda extra: "")
+    monkeypatch.setattr("hermes_linear.adapter._cached_access_token", lambda extra: "")
 
     seed = _env_enablement()
 
@@ -2444,7 +2447,7 @@ def test_interactive_setup_static_token_flow(monkeypatch):
     app user ID auto-detected from the viewer query, allowlist built."""
     import importlib
 
-    from hermes_linear_agent import adapter as adapter_module
+    from hermes_linear import adapter as adapter_module
 
     # Import (or RE-import) the wizard's lazy-import targets and patch the
     # module objects directly. String-target monkeypatch resolves via the
@@ -2516,3 +2519,84 @@ async def test_fresh_unsigned_header_cannot_refresh_stale_signed_body():
     _, status = await adapter.handle_webhook(headers, raw)
     assert status == 400
     assert adapter._client.calls == []
+
+
+@pytest.mark.asyncio
+async def test_bind_failure_releases_runner_and_credential_lock(monkeypatch):
+    import socket
+
+    import gateway.status as status_mod
+    import gateway.status_scoped_locks as scoped_locks
+
+    released = []
+    monkeypatch.setattr(status_mod, "acquire_scoped_lock", lambda *a, **k: (True, None))
+    monkeypatch.setattr(scoped_locks, "release_scoped_lock", lambda scope, identity: released.append(identity))
+    client = _ViewerClient()
+    closed = []
+
+    async def close():
+        closed.append(True)
+
+    client.aclose = close
+    with socket.socket() as occupied:
+        occupied.bind(("127.0.0.1", 0))
+        occupied.listen()
+        adapter = _make_adapter(extra={"port": occupied.getsockname()[1]}, client=client)
+        with pytest.raises(OSError):
+            await adapter.connect()
+        assert adapter._runner is None
+        assert len(released) == 1
+        assert closed == [True]
+    adapter._port = 0
+    assert await adapter.connect() is True
+    await adapter.disconnect()
+    assert len(released) == 2
+
+
+def test_adapter_registry_is_profile_scoped(monkeypatch, tmp_path):
+    from hermes_linear import registry
+
+    home = tmp_path / "one"
+    monkeypatch.setattr(registry, "get_hermes_home", lambda: home)
+    first = _make_adapter()
+    registry.set_active_adapter(first)
+    home = tmp_path / "two"
+    with pytest.raises(RuntimeError):
+        registry.get_active_adapter()
+    second = _make_adapter()
+    registry.set_active_adapter(second)
+    assert registry.get_active_adapter() is second
+    registry.set_active_adapter(None)
+    home = tmp_path / "one"
+    assert registry.get_active_adapter() is first
+    registry.set_active_adapter(None)
+
+
+@pytest.mark.asyncio
+async def test_explicit_sender_allowlist_narrows_gateway_grants():
+    client = _FakeLinearClient()
+    adapter = _make_adapter(client=client, extra={"allowed_users": ["someone-else"], "allow_all_users": False})
+    adapter.set_authorization_check(lambda *args: True)
+    raw = _body(_created_payload())
+    _, status = await adapter.handle_webhook(_headers(raw, "secret"), raw)
+    assert status == 403
+    assert client.calls == []
+
+
+@pytest.mark.asyncio
+async def test_configured_workspace_rejects_missing_identity():
+    client = _FakeLinearClient()
+    adapter = _make_adapter(client=client, extra={"workspace_id": "workspace-1"})
+    payload = _created_payload()
+    del payload["agentSession"]["workspaceId"]
+    raw = _body(payload)
+    response, status = await adapter.handle_webhook(_headers(raw, "secret"), raw)
+    assert status == 200
+    assert response["status"] == "ignored"
+    assert client.calls == []
+
+
+@pytest.mark.parametrize("policy", [{"create_comments": "false"}, {"create_comments": 1}, {"typo": True}, []])
+def test_invalid_mutation_policy_fails_closed(policy):
+    with pytest.raises(ValueError):
+        _make_adapter(extra={"mutation_policy": policy})

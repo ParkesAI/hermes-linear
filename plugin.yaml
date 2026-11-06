@@ -1,48 +1,111 @@
-name: linear-agent
+name: hermes-linear
 label: Linear Agent
-version: 0.4.3
-description: Linear Agent Session platform and attributed Linear tools for Hermes Agent.
-author: Ritchie
+version: 0.1.0
+description: Linear Agent Session platform and attributed Linear tools for Hermes
+  Agent.
+author: ParkesAI contributors (derived from Ritchie / Nous Research)
 kind: platform
-# Credentials are alternatives (a static access token OR OAuth client
-# credentials), so everything lives in optional_env; validate_config enforces
-# that at least one credential path is present at startup.
 requires_env: []
 optional_env:
-  - name: LINEAR_AGENT_ACCESS_TOKEN
-    description: "Static Linear app access token. Alternative to client-credentials OAuth."
-    prompt: "Linear Agent access token (or empty to use client credentials)"
-    password: true
-  - name: LINEAR_AGENT_CLIENT_ID
-    description: "Linear OAuth application client ID for client-credentials app-actor tokens."
-    prompt: "Linear OAuth client ID"
-    url: "https://linear.app/settings/api/applications"
-    password: false
-  - name: LINEAR_AGENT_CLIENT_SECRET
-    description: "Linear OAuth application client secret."
-    prompt: "Linear OAuth client secret"
-    password: true
-  - name: LINEAR_AGENT_WEBHOOK_SECRET
-    description: "Shared secret for verifying Linear webhook signatures. Unsigned webhooks are rejected unless allow_unsigned_webhooks is explicitly enabled."
-    prompt: "Linear webhook signing secret"
-    password: true
-  - name: LINEAR_AGENT_HOME_TARGET
-    description: "Issue ID or identifier (e.g. ENG-123) that receives cron/notification deliveries as comments."
-    prompt: "Home issue for cron delivery (or empty)"
-    password: false
-  - name: LINEAR_AGENT_ALLOWED_USERS
-    description: "Comma-separated Linear user IDs allowed to drive agent sessions."
-    prompt: "Allowed Linear user IDs (comma-separated)"
-    password: false
-  - name: LINEAR_AGENT_ALLOW_ALL_USERS
-    description: "Set to true to allow any workspace user to drive agent sessions."
-    prompt: "Allow all workspace users? (true/false)"
-    password: false
-  - name: LINEAR_AGENT_WORKSPACE_ID
-    description: "Restrict webhook processing to this Linear workspace ID."
-    prompt: "Workspace ID (or empty)"
-    password: false
-  - name: LINEAR_AGENT_PROXY
-    description: "Outbound proxy for Linear API traffic (http/https/socks URL). Falls back to HTTPS_PROXY etc."
-    prompt: "Proxy URL (or empty)"
-    password: false
+- name: LINEAR_AGENT_ACCESS_TOKEN
+  description: Static Linear app access token. Alternative to client-credentials OAuth.
+  prompt: Linear Agent access token (or empty to use client credentials)
+  password: true
+- name: LINEAR_AGENT_CLIENT_ID
+  description: Linear OAuth application client ID for client-credentials app-actor
+    tokens.
+  prompt: Linear OAuth client ID
+  url: https://linear.app/settings/api/applications
+  password: false
+- name: LINEAR_AGENT_CLIENT_SECRET
+  description: Linear OAuth application client secret.
+  prompt: Linear OAuth client secret
+  password: true
+- name: LINEAR_AGENT_WEBHOOK_SECRET
+  description: Shared secret for verifying Linear webhook signatures. Unsigned webhooks
+    are rejected unless allow_unsigned_webhooks is explicitly enabled.
+  prompt: Linear webhook signing secret
+  password: true
+- name: LINEAR_AGENT_HOME_TARGET
+  description: Issue ID or identifier (e.g. ENG-123) that receives cron/notification
+    deliveries as comments.
+  prompt: Home issue for cron delivery (or empty)
+  password: false
+- name: LINEAR_AGENT_ALLOWED_USERS
+  description: Comma-separated Linear user IDs allowed to drive agent sessions.
+  prompt: Allowed Linear user IDs (comma-separated)
+  password: false
+- name: LINEAR_AGENT_ALLOW_ALL_USERS
+  description: Set to true to allow any workspace user to drive agent sessions.
+  prompt: Allow all workspace users? (true/false)
+  password: false
+- name: LINEAR_AGENT_WORKSPACE_ID
+  description: Restrict webhook processing to this Linear workspace ID.
+  prompt: Workspace ID (or empty)
+  password: false
+- name: LINEAR_AGENT_PROXY
+  description: Outbound proxy for Linear API traffic (http/https/socks URL). Falls
+    back to HTTPS_PROXY etc.
+  prompt: Proxy URL (or empty)
+  password: false
+provides_tools:
+- linear_agent_create_comment
+- linear_agent_create_customer_need
+- linear_agent_create_document
+- linear_agent_create_issue
+- linear_agent_create_issue_label
+- linear_agent_create_milestone
+- linear_agent_create_project
+- linear_agent_create_project_update
+- linear_agent_delete_attachment
+- linear_agent_delete_comment
+- linear_agent_delete_customer
+- linear_agent_delete_customer_need
+- linear_agent_delete_status_update
+- linear_agent_get_agent_skill
+- linear_agent_get_attachment
+- linear_agent_get_customer
+- linear_agent_get_document
+- linear_agent_get_initiative
+- linear_agent_get_issue
+- linear_agent_get_issue_status
+- linear_agent_get_milestone
+- linear_agent_get_project
+- linear_agent_get_release
+- linear_agent_get_release_note
+- linear_agent_get_status_update
+- linear_agent_get_team
+- linear_agent_get_user
+- linear_agent_list_agent_skills
+- linear_agent_list_attachments
+- linear_agent_list_comments
+- linear_agent_list_customers
+- linear_agent_list_cycles
+- linear_agent_list_documents
+- linear_agent_list_initiatives
+- linear_agent_list_issue_labels
+- linear_agent_list_issue_statuses
+- linear_agent_list_issues
+- linear_agent_list_milestones
+- linear_agent_list_project_labels
+- linear_agent_list_projects
+- linear_agent_list_release_notes
+- linear_agent_list_release_pipelines
+- linear_agent_list_releases
+- linear_agent_list_status_updates
+- linear_agent_list_teams
+- linear_agent_list_users
+- linear_agent_save_customer
+- linear_agent_save_customer_need
+- linear_agent_save_document
+- linear_agent_save_initiative
+- linear_agent_save_milestone
+- linear_agent_save_release
+- linear_agent_save_release_note
+- linear_agent_save_status_update
+- linear_agent_set_session_links
+- linear_agent_update_issue
+- linear_agent_update_plan
+- linear_agent_update_project
+license: MIT
+homepage: https://github.com/ParkesAI/hermes-linear

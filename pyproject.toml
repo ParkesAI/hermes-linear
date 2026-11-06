@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=77", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "hermes-linear-agent"
-version = "0.4.3"
+name = "hermes-linear"
+version = "0.1.0"
 description = "Linear Agent Session platform and attributed Linear tools for Hermes Agent"
 readme = "README.md"
 requires-python = ">=3.11,<3.15"
@@ -12,7 +12,7 @@ license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Ritchie" }]
 dependencies = [
-  "aiohttp>=3.9",
+  "aiohttp>=3.12,<4",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -24,15 +24,15 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/infinityrobot/hermes-linear-agent"
-Repository = "https://github.com/infinityrobot/hermes-linear-agent"
-Issues = "https://github.com/infinityrobot/hermes-linear-agent/issues"
+Homepage = "https://github.com/ParkesAI/hermes-linear"
+Repository = "https://github.com/ParkesAI/hermes-linear"
+Issues = "https://github.com/ParkesAI/hermes-linear/issues"
 
 [project.entry-points."hermes_agent.plugins"]
-linear-agent = "hermes_linear_agent"
+hermes-linear = "hermes_linear"
 
 [project.scripts]
-hermes-linear-agent-oauth = "hermes_linear_agent.oauth:main"
+hermes-linear-oauth = "hermes_linear.oauth:main"
 
 [project.optional-dependencies]
 dev = [
@@ -43,8 +43,14 @@ dev = [
   "ruff>=0.14,<0.15",
 ]
 
-[tool.setuptools.packages.find]
-include = ["hermes_linear_agent*"]
+[tool.hatch.build.targets.wheel]
+packages = ["hermes_linear"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"plugin.yaml" = "hermes_linear/plugin.yaml"
+
+[tool.hatch.build.targets.sdist]
+include = ["hermes_linear", "tests", "scripts", "docs", "plugin.yaml", "__init__.py", "README.md", "LICENSE", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md", "AGENTS.md", "uv.lock"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

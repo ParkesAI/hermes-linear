@@ -6,9 +6,9 @@ fake client so we have explicit coverage of the Batch 5/6 mutation paths.
 
 import pytest
 
-from hermes_linear_agent.adapter import LinearAgentAdapter
-from hermes_linear_agent.client import LinearApiError, LinearGraphQLClient
-from hermes_linear_agent.registry import set_active_adapter
+from hermes_linear.adapter import LinearAgentAdapter
+from hermes_linear.client import LinearApiError, LinearGraphQLClient
+from hermes_linear.registry import set_active_adapter
 
 
 class _FakeSaveClient(LinearGraphQLClient):
@@ -77,7 +77,7 @@ def _make_adapter_with_fake(client=None):
 
 @pytest.mark.asyncio
 async def test_linear_agent_save_document_create_and_update():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _make_adapter_with_fake()
     client = adapter._client
@@ -95,7 +95,7 @@ async def test_linear_agent_save_document_create_and_update():
 
 @pytest.mark.asyncio
 async def test_linear_agent_save_initiative_and_release():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _make_adapter_with_fake()
     client = adapter._client
@@ -112,7 +112,7 @@ async def test_linear_agent_save_initiative_and_release():
 
 @pytest.mark.asyncio
 async def test_linear_agent_save_status_update_milestone_customer_need():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _make_adapter_with_fake()
     client = adapter._client
@@ -265,7 +265,7 @@ def test_all_tools_registered():
     """Every table entry must register through the public plugin context."""
     from tools.registry import registry as tool_registry
 
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     class Ctx:
         @staticmethod
@@ -339,7 +339,7 @@ def _adapter_with_state_client():
 
 @pytest.mark.asyncio
 async def test_update_issue_resolves_state_name_to_state_id():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_state_client()
     client = adapter._client
@@ -356,7 +356,7 @@ async def test_update_issue_resolves_state_name_to_state_id():
 
 @pytest.mark.asyncio
 async def test_update_issue_unknown_state_name_returns_guidance():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_state_client()
     client = adapter._client
@@ -370,7 +370,7 @@ async def test_update_issue_unknown_state_name_returns_guidance():
 
 @pytest.mark.asyncio
 async def test_update_issue_prefers_state_id_over_state_name():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_state_client()
     client = adapter._client
@@ -386,7 +386,7 @@ async def test_update_issue_prefers_state_id_over_state_name():
 
 @pytest.mark.asyncio
 async def test_create_issue_resolves_state_name_using_team_id():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_state_client()
     client = adapter._client
@@ -405,7 +405,7 @@ async def test_create_issue_resolves_state_name_using_team_id():
 
 @pytest.mark.asyncio
 async def test_set_session_links_normalizes_and_sends():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     class _FakeLinksClient(LinearGraphQLClient):
         def __init__(self):
@@ -467,7 +467,7 @@ def _adapter_with_plan_client():
 
 @pytest.mark.asyncio
 async def test_update_plan_normalizes_strings_and_status_variants():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_plan_client()
     client = adapter._client
@@ -498,7 +498,7 @@ async def test_update_plan_normalizes_strings_and_status_variants():
 
 @pytest.mark.asyncio
 async def test_update_plan_accepts_session_id_and_id_aliases():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_plan_client()
     await t.linear_agent_update_plan(session_id="sess-a", plan=["step"])
@@ -508,7 +508,7 @@ async def test_update_plan_accepts_session_id_and_id_aliases():
 
 @pytest.mark.asyncio
 async def test_update_plan_rejects_unknown_status():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_plan_client()
     result = await t.linear_agent_update_plan(
@@ -523,7 +523,7 @@ async def test_update_plan_rejects_unknown_status():
 
 @pytest.mark.asyncio
 async def test_update_plan_requires_session_id_and_plan():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_plan_client()
 
@@ -547,7 +547,7 @@ async def test_update_plan_requires_session_id_and_plan():
 
 @pytest.mark.asyncio
 async def test_update_issue_resolves_priority_name():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_state_client()
     client = adapter._client
@@ -563,7 +563,7 @@ async def test_update_issue_resolves_priority_name():
 
 @pytest.mark.asyncio
 async def test_update_issue_rejects_unknown_priority_name_and_out_of_range():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_state_client()
     client = adapter._client
@@ -580,7 +580,7 @@ async def test_update_issue_rejects_unknown_priority_name_and_out_of_range():
 
 @pytest.mark.asyncio
 async def test_update_issue_priority_zero_is_valid_none():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_state_client()
     client = adapter._client
@@ -595,7 +595,7 @@ async def test_update_issue_priority_zero_is_valid_none():
 
 @pytest.mark.asyncio
 async def test_create_issue_resolves_priority_name():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_state_client()
     client = adapter._client
@@ -613,7 +613,7 @@ async def test_create_issue_resolves_priority_name():
 async def test_update_issue_estimate_validation():
     """Estimate is Int points on a team-configured scale — numeric strings
     coerce, size names are rejected with guidance (no guessed mapping)."""
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_state_client()
     client = adapter._client
@@ -643,7 +643,7 @@ async def test_update_issue_estimate_validation():
 async def test_save_status_update_routes_initiative_updates():
     """initiativeId in the input (or type: 'initiative') must route to the
     initiativeUpdate mutations, not projectUpdate (MCP parity)."""
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     class _FakeStatusClient(LinearGraphQLClient):
         def __init__(self):
@@ -684,7 +684,7 @@ async def test_save_status_update_routes_initiative_updates():
 
 @pytest.mark.asyncio
 async def test_update_issue_estimate_null_clears():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_state_client()
     client = adapter._client
@@ -791,7 +791,7 @@ def _adapter_with_ref_client(app_user_id="user-agent"):
 
 @pytest.mark.asyncio
 async def test_update_issue_resolves_all_friendly_references():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -830,7 +830,7 @@ async def test_update_issue_state_resolves_against_destination_team():
     name must resolve against the DESTINATION team's workflow — resolving it
     against the fetched issue's old team would send a stateId from the wrong
     workflow alongside the new teamId."""
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -855,7 +855,7 @@ async def test_update_issue_raw_team_id_scopes_labels_to_destination():
     """A raw teamId move must scope label-name lookups to the DESTINATION
     team's catalog (not the fetched issue's old team) — and since the call
     supplies its own scope, no issue fetch is needed at all."""
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -873,7 +873,7 @@ async def test_update_issue_raw_team_id_scopes_labels_to_destination():
 
 @pytest.mark.asyncio
 async def test_update_issue_assignee_me_and_null():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client(app_user_id="user-agent")
     client = adapter._client
@@ -887,7 +887,7 @@ async def test_update_issue_assignee_me_and_null():
 
 @pytest.mark.asyncio
 async def test_update_issue_raw_ids_pass_through_untouched():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -904,7 +904,7 @@ async def test_update_issue_raw_ids_pass_through_untouched():
 
 @pytest.mark.asyncio
 async def test_update_issue_ambiguous_name_lists_candidates_and_aborts():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -921,7 +921,7 @@ async def test_update_issue_ambiguous_name_lists_candidates_and_aborts():
 
 @pytest.mark.asyncio
 async def test_update_issue_unknown_name_names_lookup_tool_and_aborts():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -936,7 +936,7 @@ async def test_update_issue_unknown_name_names_lookup_tool_and_aborts():
 async def test_update_issue_blocks_vs_blocked_by_direction():
     """Direction lock: blocks keeps this issue as source; blockedBy INVERTS
     (the other issue is the source). An inverted relation is a silent-wrong bug."""
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -976,7 +976,7 @@ async def test_create_issue_relation_maps_graphql_variables():
 
 @pytest.mark.asyncio
 async def test_update_issue_relation_partial_failure_is_reported_not_fatal():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -995,7 +995,7 @@ async def test_update_issue_relation_partial_failure_is_reported_not_fatal():
 
 @pytest.mark.asyncio
 async def test_update_issue_remove_relations_finds_relation_ids():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -1029,7 +1029,7 @@ async def test_update_issue_remove_relations_finds_relation_ids():
 
 @pytest.mark.asyncio
 async def test_update_issue_links_attach_after_update():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -1045,7 +1045,7 @@ async def test_update_issue_links_attach_after_update():
 
 @pytest.mark.asyncio
 async def test_create_issue_resolves_references_and_links():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -1063,7 +1063,7 @@ async def test_create_issue_resolves_references_and_links():
 
 @pytest.mark.asyncio
 async def test_comment_update_and_reply():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     class _FakeCommentClient(LinearGraphQLClient):
         def __init__(self):
@@ -1101,7 +1101,7 @@ async def test_comment_update_and_reply():
 
 @pytest.mark.asyncio
 async def test_delete_status_update_routes_initiative_vs_project():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     class _FakeDeleteClient(LinearGraphQLClient):
         def __init__(self):
@@ -1133,7 +1133,7 @@ async def test_delete_status_update_routes_initiative_vs_project():
 
 @pytest.mark.asyncio
 async def test_delete_tools_require_id():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     _make_adapter_with_fake()
     assert "missing" in await t.linear_agent_delete_comment()
@@ -1146,7 +1146,7 @@ async def test_delete_tools_require_id():
 async def test_create_issue_team_key_resolves_to_uuid():
     """Regression (review P2): team_id="ENG" must resolve through the team
     reference resolver — not be written straight to teamId as an invalid id."""
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_ref_client()
     client = adapter._client
@@ -1210,7 +1210,7 @@ def _adapter_with_round2_client():
 
 @pytest.mark.asyncio
 async def test_save_customer_create_vs_update_routing():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_round2_client()
     client = adapter._client
@@ -1231,7 +1231,7 @@ async def test_save_customer_create_vs_update_routing():
 
 @pytest.mark.asyncio
 async def test_save_release_note_routing_and_pipeline_requirement():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_round2_client()
     client = adapter._client
@@ -1255,7 +1255,7 @@ async def test_save_release_note_routing_and_pipeline_requirement():
 
 @pytest.mark.asyncio
 async def test_create_issue_label_team_vs_workspace():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_round2_client()
     client = adapter._client
@@ -1276,7 +1276,7 @@ async def test_create_issue_label_team_vs_workspace():
 
 @pytest.mark.asyncio
 async def test_new_getter_and_lister_dump_results():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_round2_client()
     client = adapter._client
@@ -1292,7 +1292,7 @@ async def test_new_getter_and_lister_dump_results():
 
 @pytest.mark.asyncio
 async def test_create_comment_parent_routing():
-    from hermes_linear_agent import tools as t
+    from hermes_linear import tools as t
 
     adapter = _adapter_with_round2_client()
     client = adapter._client

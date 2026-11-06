@@ -270,10 +270,7 @@ def describe_signature_headers(headers: Mapping[str, str]) -> dict[str, Any]:
 
 
 def extract_delivery_id(payload: Mapping[str, Any], headers: Mapping[str, str]) -> str:
-    header_value = _header(headers, *WEBHOOK_ID_HEADERS)
-    if header_value:
-        return header_value
-
+    # Delivery identity must come from authenticated body fields, not mutable headers.
     for path in (
         ("webhookEvent", "id"),
         ("event", "id"),
@@ -297,7 +294,8 @@ def extract_delivery_id(payload: Mapping[str, Any], headers: Mapping[str, str]) 
     activity_id = _string(_get_path(payload, "agentActivity", "id"))
     entity_id = _string(_get_path(payload, "data", "id"))
     entity_updated = _string(_get_path(payload, "data", "updatedAt"))
-    return ":".join(part for part in (action, session_id, activity_id, entity_id, entity_updated) if part)
+    identity = ":".join(part for part in (action, session_id, activity_id, entity_id, entity_updated) if part)
+    return identity or hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
 def normalize_action(payload: Mapping[str, Any]) -> str:

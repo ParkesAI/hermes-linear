@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from gateway.platform_registry import PlatformEntry, platform_registry
 
-from hermes_linear_agent import register
+from hermes_linear import register
 
 
 class _PlatformRegistrationContext:
@@ -17,7 +17,7 @@ class _PlatformRegistrationContext:
             PlatformEntry(
                 **kwargs,
                 source="plugin",
-                plugin_name="linear-agent",
+                plugin_name="hermes-linear",
             )
         )
 

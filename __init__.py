@@ -6,8 +6,8 @@ module without changing the runtime plugin path.
 """
 
 try:
-    from .hermes_linear_agent import register
+    from .hermes_linear import register
 except ImportError:  # pragma: no cover - repository-local tooling fallback
-    from hermes_linear_agent import register
+    from hermes_linear import register
 
 __all__ = ["register"]

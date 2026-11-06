@@ -1,9 +1,0 @@
-include AGENTS.md
-include CHANGELOG.md
-include CONTRIBUTING.md
-include LICENSE
-include README.md
-include __init__.py
-include plugin.yaml
-recursive-include scripts *.py
-recursive-include tests *.py

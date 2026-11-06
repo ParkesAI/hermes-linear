@@ -65,9 +65,9 @@ from .webhook import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_HOST = "0.0.0.0"
+DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8651
-DEFAULT_WEBHOOK_PATH = "/hermes/linear-agent"
+DEFAULT_WEBHOOK_PATH = "/linear"
 DEFAULT_ACK_BODY = "I’m starting work on this."
 # All write operations fail closed: each key must be explicitly enabled.
 # `update_projects` also covers project updates (status updates), milestones,
@@ -133,9 +133,9 @@ def _default_auth_path() -> Path:
     try:
         from hermes_constants import get_hermes_home
 
-        return get_hermes_home() / "plugin-state" / "linear-agent" / "oauth.json"
+        return get_hermes_home() / "plugin-state" / "hermes-linear" / "oauth.json"
     except Exception:
-        return Path.home() / ".hermes" / "plugin-state" / "linear-agent" / "oauth.json"
+        return Path.home() / ".hermes" / "plugin-state" / "hermes-linear" / "oauth.json"
 
 
 def _legacy_auth_path() -> Path:
@@ -240,16 +240,15 @@ def _list_value(value: Any) -> list[str]:
 
 def _merge_policy(value: Any) -> dict[str, Any]:
     policy = dict(DEFAULT_MUTATION_POLICY)
-    if isinstance(value, dict):
-        unknown = set(value) - set(DEFAULT_MUTATION_POLICY)
-        if unknown:
-            # A typo (e.g. create_comment, singular) fails closed but would
-            # otherwise silently ignore the operator's intent.
-            logger.warning(
-                "[linear_agent] Unknown mutation_policy keys ignored: %s",
-                ", ".join(sorted(unknown)),
-            )
-        policy.update(value)
+    if value is None:
+        return policy
+    if not isinstance(value, dict):
+        raise ValueError("mutation_policy must be a mapping of boolean values")
+    if set(value) - set(policy):
+        raise ValueError("Unknown mutation_policy key")
+    if any(type(enabled) is not bool for enabled in value.values()):
+        raise ValueError("mutation_policy values must be booleans")
+    policy.update(value)
     return policy
 
 
@@ -442,6 +441,8 @@ class LinearAgentAdapter(BasePlatformAdapter):
         super().__init__(config=config, platform=Platform("linear_agent"))
         extra = config.extra or {}
         self._host = str(extra.get("webhook_host") or extra.get("host") or DEFAULT_HOST)
+        if self._host not in {"127.0.0.1", "::1"}:
+            raise ValueError("The Linear receiver must bind to a loopback address")
         # None-checked (not `or`-chained): an explicit 0 means "bind an
         # ephemeral port" and must not collapse into the default.
         port_val = extra.get("webhook_port")
@@ -559,9 +560,16 @@ class LinearAgentAdapter(BasePlatformAdapter):
         app.router.add_post(f"/p/{{profile}}{self._webhook_path}", self._handle_webhook)
 
         self._runner = web.AppRunner(app)
-        await self._runner.setup()
-        site = web.TCPSite(self._runner, self._host, self._port)
-        await site.start()
+        try:
+            await self._runner.setup()
+            site = web.TCPSite(self._runner, self._host, self._port)
+            await site.start()
+        except Exception:
+            await self._runner.cleanup()
+            self._runner = None
+            await self._client.aclose()
+            self._release_platform_lock()
+            raise
         bind_pooled_loop = getattr(self._client, "bind_pooled_loop", None)
         if bind_pooled_loop is not None:
             bind_pooled_loop()
@@ -917,7 +925,7 @@ class LinearAgentAdapter(BasePlatformAdapter):
         # imply the configured workspace. Enforced before authorization and
         # all side effects; 200 so Linear doesn't retry legitimate traffic
         # from the app's other workspaces.
-        if self._workspace_id and context.workspace_id and context.workspace_id != self._workspace_id:
+        if self._workspace_id and context.workspace_id != self._workspace_id:
             logger.warning(
                 "[linear_agent] Ignoring webhook from workspace %s (configured workspace: %s)",
                 context.workspace_id,
@@ -1009,15 +1017,10 @@ class LinearAgentAdapter(BasePlatformAdapter):
 
         try:
             await self._dispatch_linear_message(context, message, payload, profile=profile)
-        except Exception as exc:  # noqa: BLE001 - send an Agent Activity error when possible
+        except Exception:  # A failed handoff must remain retryable.
             logger.exception("[linear_agent] Dispatch failed for session %s", context.agent_session_id)
-            await self.send_error_activity(
-                context.agent_session_id,
-                f"The assistant failed to process this Linear Agent Session: {exc}",
-            )
-            # 200: the delivery itself was handled (Linear retries non-200,
-            # and repeated failures disable the webhook).
-            return {"status": "error", "delivery_id": context.delivery_id}, 200
+            self._dedup.discard(context.delivery_id)
+            return {"status": "error", "error": "Gateway handoff failed"}, 503
         finally:
             # Both side tasks swallow their own exceptions. Wait only briefly:
             # Linear expects the webhook HTTP response within 5 seconds, and
@@ -1069,12 +1072,14 @@ class LinearAgentAdapter(BasePlatformAdapter):
         chain the dispatch layer uses (platform env allowlists including the
         ``*`` wildcard, ``GATEWAY_ALLOWED_USERS``, pairing-store grants) — so
         the grants the docs promise stay reachable and the two layers cannot
-        drift. Adapter-local YAML ``allowed_users``/``allow_all_users`` still
-        grant as a union (the gateway can't see YAML extras), and
+        drift. An explicit adapter-local ``allowed_users`` list narrows gateway
+        grants; with no local list the gateway chain can authorize the sender, and
         ``allowed_teams`` always narrows, even over a gateway grant. When no
         callback is registered (standalone runs, unit tests), the local
         fail-closed check decides alone.
         """
+        if self._allowed_users and context.actor_user_id not in self._allowed_users:
+            return False
         if is_authorized(
             context,
             allowed_users=self._allowed_users,
@@ -1570,8 +1575,8 @@ def interactive_setup() -> None:
     print("  Next steps:")
     print("  1. Enable the 'Agent session' (and optionally 'Issues') webhook")
     print("     categories on the Linear app.")
-    print("  2. Point the webhook at: https://<your-host>/hermes/linear-agent")
-    print("     (local dev: cloudflared tunnel --url http://localhost:8651)")
+    print("  2. Point the webhook at: https://<your-host>/linear")
+    print("     Publish only this webhook path through your HTTPS ingress.")
     print("  3. Add `linear_agent: {enabled: true}` + mutation_policy keys to")
     print("     config.yaml (all writes are off until you enable them).")
     print("  4. Restart the gateway, then @-mention the agent on an issue.")

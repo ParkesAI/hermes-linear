@@ -10,3 +10,10 @@ dist/
 htmlcov/
 .DS_Store
 .env
+
+.hermes-sdk/
+.hermes-test-home/
+.env.*
+*.key
+*.pem
+*.log

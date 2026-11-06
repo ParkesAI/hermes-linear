@@ -4,13 +4,13 @@ The runtime pieces in this module intentionally keep credentials out of logs.
 For Linear Agent/app attribution, prefer Linear's ``client_credentials`` grant:
 Hermes stores OAuth client credentials in the active Hermes profile `.env`.
 This plugin caches app-actor access tokens in its own profile-scoped state file
-under `plugin-state/linear-agent/oauth.json` and
+under `plugin-state/hermes-linear/oauth.json` and
 obtains a replacement token before expiry or after a 401.
 
 The module can also be executed directly to either mint a client-credentials
 token or perform the older browser-based local callback flow:
 
-    python -m hermes_linear_agent.oauth --profile <profile> \
+    python -m hermes_linear.oauth --profile <profile> \
         --client-id ... --client-secret ... --client-credentials
 """
 
@@ -198,7 +198,7 @@ class LinearOAuthTokenManager:
                         self.config.refresh_token = ""
                         raise LinearOAuthError(
                             "Linear refresh token was revoked or expired; re-run the "
-                            "Linear OAuth flow (see the hermes-linear-agent README) "
+                            "Linear OAuth flow (see the hermes-linear README) "
                             "or configure LINEAR_AGENT_CLIENT_ID/LINEAR_AGENT_CLIENT_SECRET "
                             "for client-credentials tokens"
                         ) from exc
@@ -572,7 +572,7 @@ def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _auth_path_for_env_path(env_path: Path) -> Path:
-    return env_path.expanduser().parent / "plugin-state" / "linear-agent" / "oauth.json"
+    return env_path.expanduser().parent / "plugin-state" / "hermes-linear" / "oauth.json"
 
 
 def update_env_file(path: Path, updates: dict[str, str]) -> None:

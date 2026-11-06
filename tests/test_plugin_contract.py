@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = ROOT / "hermes_linear_agent"
+PACKAGE = ROOT / "hermes_linear"
 HERMES_ROOTS = {"agent", "cron", "gateway", "hermes_cli", "hermes_constants", "tools", "toolsets", "utils"}
 
 
@@ -18,9 +18,9 @@ def _python_files():
 
 def test_manifest_declares_external_platform_plugin():
     manifest = yaml.safe_load((ROOT / "plugin.yaml").read_text(encoding="utf-8"))
-    assert manifest["name"] == "linear-agent"
+    assert manifest["name"] == "hermes-linear"
     assert manifest["kind"] == "platform"
-    assert manifest["version"] == "0.4.3"
+    assert manifest["version"] == "0.1.0"
     assert manifest["requires_env"] == []
 
 
@@ -53,4 +53,11 @@ def test_tools_register_only_through_plugin_context():
 
 def test_pip_entry_point_targets_package_module():
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    assert 'linear-agent = "hermes_linear_agent"' in pyproject
+    assert 'hermes-linear = "hermes_linear"' in pyproject
+
+
+def test_manifest_tool_declarations_match_runtime_contract():
+    from hermes_linear.tools import TOOL_NAMES
+
+    manifest = yaml.safe_load((ROOT / "plugin.yaml").read_text())
+    assert set(manifest["provides_tools"]) == set(TOOL_NAMES)

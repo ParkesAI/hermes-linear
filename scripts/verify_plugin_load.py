@@ -20,9 +20,9 @@ SMOKE_TOOLS = (
 def main() -> int:
     manager = get_plugin_manager()
     manager.discover_and_load(force=True)
-    matches = [item for item in manager.list_plugins() if item["name"] == "linear-agent"]
+    matches = [item for item in manager.list_plugins() if item["name"] == "hermes-linear"]
     if len(matches) != 1:
-        raise RuntimeError(f"expected one linear-agent plugin, found {matches!r}")
+        raise RuntimeError(f"expected one hermes-linear plugin, found {matches!r}")
     plugin = matches[0]
     if not plugin["enabled"] or plugin["error"]:
         raise RuntimeError(f"plugin failed to load: {plugin!r}")

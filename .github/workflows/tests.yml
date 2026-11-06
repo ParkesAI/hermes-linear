@@ -32,11 +32,12 @@ jobs:
           version: '0.13.7'
           python-version: ${{ matrix.python }}
       - run: uv run --project .hermes-sdk --with '.[dev]' pytest
-      - run: uv run --project .hermes-sdk --with '.[dev]' ruff check hermes_linear_agent tests scripts __init__.py
-      - run: uv run --project .hermes-sdk --with '.[dev]' ruff format --check hermes_linear_agent tests scripts __init__.py
+      - run: uv run --project .hermes-sdk --with '.[dev]' ruff check hermes_linear tests scripts __init__.py
+      - run: uv run --project .hermes-sdk --with '.[dev]' ruff format --check hermes_linear tests scripts __init__.py
       - name: Verify pip entry-point loading
         run: |
           mkdir -p "$HERMES_HOME"
-          printf 'plugins:\n  enabled:\n    - linear-agent\n' > "$HERMES_HOME/config.yaml"
+          printf 'plugins:\n  enabled:\n    - hermes-linear\n' > "$HERMES_HOME/config.yaml"
           uv run --project .hermes-sdk --with '.[dev]' python scripts/verify_plugin_load.py
       - run: uv build
+      - run: uv run --project .hermes-sdk --with '.[dev]' python scripts/check_distribution.py

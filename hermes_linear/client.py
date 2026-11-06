@@ -56,7 +56,7 @@ def _require_policy(
     Every write method must call this before executing its mutation so that
     all writes fail closed when the operator has not opted in.
     """
-    if not (mutation_policy or {}).get(key, False):
+    if (mutation_policy or {}).get(key, False) is not True:
         raise LinearApiError(f"{what} is disabled by mutation_policy (enable '{key}')")
 
 
