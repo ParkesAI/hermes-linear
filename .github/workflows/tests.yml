@@ -10,37 +10,32 @@ permissions:
 jobs:
   hermes-compatibility:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python: ['3.11', '3.12', '3.13', '3.14']
+    env:
+      UV_PYTHON: ${{ matrix.python }}
+      HERMES_HOME: ${{ github.workspace }}/.hermes-test-home
+      PYTHONPATH: ${{ github.workspace }}/.hermes-sdk
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - run: git clone --depth 1 https://github.com/NousResearch/hermes-agent.git ../hermes-agent
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e ../hermes-agent
-      - run: python -m pip install -e ".[dev]"
-      - run: pytest
+          repository: NousResearch/hermes-agent
+          ref: 2bd378ed1b8d6bf2192cb26e0a55ff3091e6bd19 # v0.23.0
+          path: .hermes-sdk
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+        with:
+          version: '0.13.7'
+          python-version: ${{ matrix.python }}
+      - run: uv run --project .hermes-sdk --with '.[dev]' pytest
+      - run: uv run --project .hermes-sdk --with '.[dev]' ruff check hermes_linear_agent tests scripts __init__.py
+      - run: uv run --project .hermes-sdk --with '.[dev]' ruff format --check hermes_linear_agent tests scripts __init__.py
       - name: Verify pip entry-point loading
         run: |
-          export HERMES_HOME="$(mktemp -d)"
-          python -c "from pathlib import Path; import os; Path(os.environ['HERMES_HOME'], 'config.yaml').write_text('plugins:\n  enabled:\n    - linear-agent\n')"
-          python scripts/verify_plugin_load.py
-
-  package-quality:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-      - run: python -m pip install --upgrade pip build ruff
-      - run: ruff check hermes_linear_agent tests scripts __init__.py
-      - run: ruff format --check hermes_linear_agent tests scripts __init__.py
-      - run: python -m compileall -q hermes_linear_agent tests scripts __init__.py
-      - run: python -m build
+          mkdir -p "$HERMES_HOME"
+          printf 'plugins:\n  enabled:\n    - linear-agent\n' > "$HERMES_HOME/config.yaml"
+          uv run --project .hermes-sdk --with '.[dev]' python scripts/verify_plugin_load.py
+      - run: uv build

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.3 — 2026-11-06 (ParkesAI fork)
+
+- Support Python 3.14 and qualify against the pinned Hermes 0.23.0 SDK.
+- Update lock lifecycle tests for the current Hermes contract.
+- Require a fresh numeric timestamp in the signed webhook body, regardless of
+  unsigned headers, with regression coverage.
+
+
 All notable changes to this project will be documented here.
 
 ## 0.4.2 — 2026-07-29

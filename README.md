@@ -1,5 +1,12 @@
 # Hermes Linear Agent
 
+This is the ParkesAI compatibility fork of
+[infinityrobot/hermes-linear-agent](https://github.com/infinityrobot/hermes-linear-agent).
+It targets Hermes Agent 0.23.0 and adds Python 3.14 support, current lock-contract
+tests, and strict freshness validation of the signed webhook body. Upstream MIT
+licensing and attribution are preserved. Deployment credentials and settings are
+kept outside this repository.
+
 Standalone [Hermes Agent](https://github.com/NousResearch/hermes-agent) platform plugin for Linear Agent Sessions. It lets a Hermes gateway profile appear in Linear as an app-attributed Linear Agent, receives signed Agent Session webhooks, sends responses as Agent Activities, and provides 58 `linear_agent_*` tools whose mutations are attributed to the app.
 
 This is an independent third-party plugin: it does not patch or vendor the Hermes core repository.
@@ -9,7 +16,7 @@ This is an independent third-party plugin: it does not patch or vendor the Herme
 From Git (recommended):
 
 ```bash
-hermes plugins install infinityrobot/hermes-linear-agent --enable
+hermes plugins install ParkesAI/hermes-linear-agent --enable
 ```
 
 Or, after a package release, install it into the same Python environment as Hermes:

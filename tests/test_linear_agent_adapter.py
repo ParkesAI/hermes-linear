@@ -206,6 +206,7 @@ class _ActiveMutationAdapter:
 
 
 def _body(payload):
+    payload = {"webhookTimestamp": int(time.time() * 1000), **payload}
     return json.dumps(payload, separators=(",", ":")).encode("utf-8")
 
 
@@ -1078,6 +1079,7 @@ async def test_scoped_lock_acquired_on_connect_and_released_on_disconnect(monkey
     """AGENTS.md scoped-lock: connect() takes a per-credential lock and
     disconnect() releases it, so two profiles can't share one credential."""
     import gateway.status as status_mod
+    import gateway.status_scoped_locks as scoped_locks
 
     acquired = []
     released = []
@@ -1090,7 +1092,7 @@ async def test_scoped_lock_acquired_on_connect_and_released_on_disconnect(monkey
         released.append((scope, identity))
 
     monkeypatch.setattr(status_mod, "acquire_scoped_lock", fake_acquire)
-    monkeypatch.setattr(status_mod, "release_scoped_lock", fake_release)
+    monkeypatch.setattr(scoped_locks, "release_scoped_lock", fake_release)
 
     # Ephemeral port so the test never collides with a real gateway.
     adapter = _make_adapter(extra={"port": 0})
@@ -1137,9 +1139,10 @@ class _ViewerClient(_FakeLinearClient):
 
 def _lock_free(monkeypatch):
     import gateway.status as status_mod
+    import gateway.status_scoped_locks as scoped_locks
 
     monkeypatch.setattr(status_mod, "acquire_scoped_lock", lambda scope, identity, metadata=None: (True, None))
-    monkeypatch.setattr(status_mod, "release_scoped_lock", lambda scope, identity: None)
+    monkeypatch.setattr(scoped_locks, "release_scoped_lock", lambda scope, identity: None)
 
 
 @pytest.mark.asyncio
@@ -2489,3 +2492,27 @@ def test_register_wires_interactive_setup():
     ctx = _PluginContext()
     register(ctx)
     assert callable(ctx.registered.get("setup_fn"))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("timestamp", [None, "invalid", float("nan"), float("inf"), True, 0])
+async def test_missing_or_invalid_signed_body_timestamp_is_rejected(timestamp):
+    adapter = _make_adapter(client=_FakeLinearClient())
+    payload = _created_payload()
+    if timestamp is not None:
+        payload["webhookTimestamp"] = timestamp
+    raw = json.dumps(payload).encode()
+    headers = {**_headers(raw, "secret"), "Linear-Timestamp": str(int(time.time() * 1000))}
+    _, status = await adapter.handle_webhook(headers, raw)
+    assert status == 400
+    assert adapter._client.calls == []
+
+
+@pytest.mark.asyncio
+async def test_fresh_unsigned_header_cannot_refresh_stale_signed_body():
+    adapter = _make_adapter(client=_FakeLinearClient())
+    raw = _body({**_created_payload(), "webhookTimestamp": int((time.time() - 3600) * 1000)})
+    headers = {**_headers(raw, "secret"), "Linear-Timestamp": str(int(time.time() * 1000))}
+    _, status = await adapter.handle_webhook(headers, raw)
+    assert status == 400
+    assert adapter._client.calls == []

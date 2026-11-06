@@ -7,6 +7,7 @@ import binascii
 import hashlib
 import hmac
 import json
+import math
 import re
 import time
 from collections.abc import Mapping
@@ -238,23 +239,12 @@ def is_stale_body_timestamp(
     *,
     tolerance_seconds: int = 60,
 ) -> bool:
-    """Replay guard for deliveries whose timestamp rides only in the body.
-
-    Header freshness is enforced during signature verification; without a
-    timestamp header, the signed ``webhookTimestamp`` body field is the only
-    thing stopping a captured delivery from replaying after the dedup TTL.
-    """
-    if _header(headers, *TIMESTAMP_HEADERS):
-        return False
+    """Require a fresh timestamp inside the signed body, regardless of headers."""
     ts = payload.get("webhookTimestamp")
-    if not ts:
-        return False
-    try:
-        ts_value = float(ts)
-    except (TypeError, ValueError):
-        return False
-    ts_seconds = ts_value / 1000 if ts_value > 10_000_000_000 else ts_value
-    return abs(time.time() - ts_seconds) > tolerance_seconds
+    if type(ts) not in (int, float):
+        return True
+    ts_seconds = ts / 1000
+    return not math.isfinite(ts_seconds) or abs(time.time() - ts_seconds) > tolerance_seconds
 
 
 def describe_signature_headers(headers: Mapping[str, str]) -> dict[str, Any]:
