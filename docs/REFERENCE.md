@@ -19,14 +19,9 @@ From Git (recommended):
 hermes plugins install ParkesAI/hermes-linear --enable
 ```
 
-The wheel is available as a release artifact for managed installations. It is not published to PyPI. Use the native Hermes installation above. Legacy upstream command example (not a publication claim):
-
-```bash
-python -m pip install hermes-linear
-hermes plugins enable hermes-linear
-```
-
-Hermes itself is not distributed as a wheel and must not be added as a pip dependency. The Git installation path above is recommended for normal Hermes installations; the wheel path is intended for managed or development environments that already contain Hermes.
+Release wheels are available for managed environments that already contain
+Hermes. The native Git installation above is recommended. This project is not
+published to PyPI.
 
 Then verify discovery and run the platform setup wizard:
 
