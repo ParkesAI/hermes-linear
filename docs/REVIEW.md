@@ -19,6 +19,8 @@ not an independent audit of every Hermes or Linear dependency.
 - Reject non-boolean/unknown mutation policies. A string such as `"false"` is not
   permission to write. Explicit sender lists narrow broader gateway grants; a
   configured workspace rejects missing as well as mismatched workspace identity.
+- Normalize the current Linear session creator and activity-author contracts;
+  never borrow a session creator's permission for another human's follow-up.
 - Support Python 3.14, use the pinned Hermes 0.23.0 lock contract, and align native
   manifests, wheel discovery, source contents and MIT release metadata.
 

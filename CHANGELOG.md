@@ -2,6 +2,12 @@
 
 ## 0.1.0 — 2026-11-06 (ParkesAI fork)
 
+- Rename the plugin/distribution to `hermes-linear`, preserving upstream MIT attribution.
+- Require loopback binding, profile-scoped tool routing, strict mutation policies,
+  signed delivery identity and retryable gateway handoff failures.
+- Qualify live delegation, comment mentions and conversation follow-ups against
+  Linear, in addition to the real Hermes SDK regression suite.
+
 - Support Python 3.14 and qualify against the pinned Hermes 0.23.0 SDK.
 - Update lock lifecycle tests for the current Hermes contract.
 - Require a fresh numeric timestamp in the signed webhook body, regardless of
