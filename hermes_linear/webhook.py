@@ -368,9 +368,11 @@ def extract_context(
     team = issue.get("team") if isinstance(issue.get("team"), dict) else {}
     if not team and isinstance(payload.get("team"), dict):
         team = payload["team"]
-    actor = payload.get("actor") if isinstance(payload.get("actor"), dict) else {}
     agent_activity = payload.get("agentActivity") if isinstance(payload.get("agentActivity"), dict) else {}
-    activity_actor = agent_activity.get("actor") if isinstance(agent_activity.get("actor"), dict) else {}
+    # Linear's AgentSessionEvent contract: created -> creator; prompted -> activity user.
+    principal = session.get("creator") if action == "created" else agent_activity.get("user")
+    principal = principal if isinstance(principal, dict) else {}
+    principal_id = session.get("creatorId") if action == "created" else agent_activity.get("userId")
 
     agent_session_id = _string(session.get("id") or payload.get("agentSessionId"))
     if not agent_session_id:
@@ -410,13 +412,8 @@ def extract_context(
         issue_identifier=_string(issue.get("identifier")),
         issue_title=_string(issue.get("title")),
         comment_id=_string(comment.get("id")),
-        actor_user_id=_string(
-            actor.get("id")
-            or activity_actor.get("id")
-            or payload.get("actorUserId")
-            or _get_path(payload, "user", "id")
-        ),
-        actor_user_name=_string(actor.get("name") or activity_actor.get("name") or _get_path(payload, "user", "name")),
+        actor_user_id=_string(principal.get("id") or principal_id),
+        actor_user_name=_string(principal.get("name")),
         team_id=_string(team.get("id") or payload.get("teamId")),
         prompt_context=_string(payload.get("promptContext") or session.get("promptContext")),
         guidance=_guidance_text(payload.get("guidance") or session.get("guidance")),

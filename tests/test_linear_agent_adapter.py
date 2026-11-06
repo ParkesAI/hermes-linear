@@ -231,10 +231,12 @@ def _headers(raw_body, secret, delivery_id="evt-1"):
 def _created_payload(event_id="evt-1"):
     return {
         "action": "created",
+        "type": "AgentSessionEvent",
         "id": event_id,
         "agentSession": {
             "id": "session-1",
             "workspaceId": "workspace-1",
+            "creator": {"id": "user-1", "name": "Ada"},
             "issue": {
                 "id": "issue-1",
                 "identifier": "LIN-123",
@@ -246,7 +248,6 @@ def _created_payload(event_id="evt-1"):
                 "body": "@Hermes please investigate this failure.",
             },
         },
-        "actor": {"id": "user-1", "name": "Ada"},
         "promptContext": "The issue has a failing CI check.",
         "guidance": "Prefer a concise answer.",
     }
@@ -269,7 +270,7 @@ def _prompted_payload(event_id="evt-2"):
         "agentActivity": {
             "id": "activity-user-1",
             "body": "Can you check the test log too?",
-            "actor": {"id": "user-1", "name": "Ada"},
+            "user": {"id": "user-1", "name": "Ada"},
         },
     }
 
@@ -2600,3 +2601,52 @@ async def test_configured_workspace_rejects_missing_identity():
 def test_invalid_mutation_policy_fails_closed(policy):
     with pytest.raises(ValueError):
         _make_adapter(extra={"mutation_policy": policy})
+
+
+@pytest.mark.asyncio
+async def test_published_agent_session_creator_contract_dispatches_without_root_actor():
+    client = _FakeLinearClient()
+    adapter = _make_adapter(client=client, extra={"allowed_users": ["user-1"], "allow_all_users": False})
+    captured = []
+
+    async def capture(event):
+        captured.append(event)
+
+    adapter.handle_message = capture
+    payload = _created_payload()
+    assert "actor" not in payload
+    raw = _body(payload)
+    _, status = await adapter.handle_webhook(_headers(raw, "secret"), raw)
+    assert status == 200
+    assert len(captured) == 1
+    assert captured[0].source.user_id == "user-1"
+
+
+@pytest.mark.asyncio
+async def test_followup_author_cannot_inherit_session_creators_permission():
+    client = _FakeLinearClient()
+    adapter = _make_adapter(client=client, extra={"allowed_users": ["user-1"], "allow_all_users": False})
+    payload = _prompted_payload()
+    payload["agentSession"]["creator"] = {"id": "user-1", "name": "Ada"}
+    payload["agentActivity"]["user"] = {"id": "someone-else"}
+    raw = _body(payload)
+    _, status = await adapter.handle_webhook(_headers(raw, "secret"), raw)
+    assert status == 403
+    assert client.calls == []
+
+
+@pytest.mark.asyncio
+async def test_current_creator_and_activity_user_id_fields_are_supported():
+    client = _FakeLinearClient()
+    adapter = _make_adapter(client=client, extra={"allowed_users": ["user-1"], "allow_all_users": False})
+    adapter.handle_message = _noop_handler
+    created = _created_payload()
+    del created["agentSession"]["creator"]
+    created["agentSession"]["creatorId"] = "user-1"
+    prompted = _prompted_payload()
+    del prompted["agentActivity"]["user"]
+    prompted["agentActivity"]["userId"] = "user-1"
+    for payload in [created, prompted]:
+        raw = _body(payload)
+        _, status = await adapter.handle_webhook(_headers(raw, "secret"), raw)
+        assert status == 200
